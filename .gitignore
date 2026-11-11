@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+.env
+*.db
+src/ml_core/model_cache/
+mcp_sandbox_workspace/
+knowledge_docs/

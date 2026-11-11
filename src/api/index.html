@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Agent AI Workspace</title>
+    <link rel="icon" href="data:,">
+    <style>
+                .code-wrapper {
+            margin: 10px 0;
+            background-color: #020617;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #0f172a;
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            border-bottom: 1px solid #1e293b;
+        }
+        .copy-code-btn {
+            background: #1e293b;
+            color: var(--accent-blue);
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 3px 10px;
+            font-size: 0.75rem;
+            cursor: pointer;
+        }
+        .copy-code-btn:hover { background: #334155; }
+        .code-block {
+            margin: 0;
+            padding: 12px 14px;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #e2e8f0;
+            overflow-x: auto;
+            white-space: pre;
+            tab-size: 4;
+        }
+
+        :root {
+            --bg-dark: #0f172a;
+            --sidebar-bg: #0b1120;
+            --panel-bg: #1e293b;
+            --accent-blue: #38bdf8;
+            --user-bubble: #0284c7;
+            --ai-bubble: #1e293b;
+            --accent-green: #22c55e;
+            --accent-rose: #f43f5e;
+            --text-main: #f8fafc;
+        }
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            display: flex;
+        }
+        .sidebar {
+            width: 270px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid #1e293b;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            transition: margin-left 0.25s ease;
+            flex-shrink: 0;
+        }
+        .sidebar.collapsed { margin-left: -270px; }
+        .new-chat-btn {
+            background-color: var(--accent-blue);
+            color: #0f172a;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-bottom: 16px;
+            width: 100%;
+            font-size: 0.9rem;
+        }
+        .sidebar-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+        .session-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .session-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #131c31;
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .session-item:hover { background: #1e293b; }
+        .session-item.active { border-color: var(--accent-blue); background: #1e293b; color: white; font-weight: 600; }
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        .topbar {
+            height: 60px;
+            border-bottom: 1px solid #1e293b;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--bg-dark);
+            flex-shrink: 0;
+        }
+        .topbar-left { display: flex; align-items: center; gap: 14px; }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .slider-toggle {
+            background: #1e293b;
+            color: white;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+        .voice-btn {
+            background: #1e293b;
+            color: white;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .avatar-mini {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #1e293b;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid #334155;
+            font-size: 0.85rem;
+        }
+        .avatar-mini.speaking { border-color: var(--accent-green); }
+        .avatar-mini.listening { border-color: var(--accent-rose); }
+        .chat-scroll-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px 12%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            background-color: #0b1120;
+        }
+        .msg-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 78%;
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-row.user { align-self: flex-end; align-items: flex-end; }
+        .msg-row.ai { align-self: flex-start; align-items: flex-start; }
+        .msg-sender {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            margin-bottom: 4px;
+            padding: 0 4px;
+        }
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .msg-row.user .bubble {
+            background-color: var(--user-bubble);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .msg-row.ai .bubble {
+            background-color: var(--ai-bubble);
+            color: #f1f5f9;
+            border: 1px solid #334155;
+            border-bottom-left-radius: 4px;
+        }
+        .agent-pill {
+            align-self: flex-start;
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            color: #7dd3fc;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            max-width: 85%;
+        }
+        .typing-dots {
+            align-self: flex-start;
+            background: var(--ai-bubble);
+            border: 1px solid #334155;
+            padding: 10px 16px;
+            border-radius: 16px;
+            color: #94a3b8;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+        }
+        .bottom-dock {
+            padding: 16px 12%;
+            background-color: var(--bg-dark);
+            border-top: 1px solid #1e293b;
+            flex-shrink: 0;
+        }
+        .control-row { display: flex; gap: 10px; }
+        input[type="text"] {
+            flex: 1;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: white;
+            font-size: 0.95rem;
+            outline: none;
+        }
+        input[type="text"]:focus { border-color: var(--accent-blue); }
+        button.primary-btn {
+            background-color: var(--accent-blue);
+            color: #0f172a;
+            border: none;
+            border-radius: 12px;
+            padding: 0 24px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .mic-btn {
+            background-color: #1e293b;
+            color: white;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 0 16px;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+        .mic-btn.active { background-color: var(--accent-rose); }
+        .action-card {
+            background: #0f172a;
+            border: 2px solid var(--accent-green);
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .call-action-btn {
+            background-color: var(--accent-green);
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar" class="sidebar">
+        <button class="new-chat-btn" onclick="startNewSession()">+ New Chat</button>
+        <div class="sidebar-title">Saved Chat Sessions</div>
+        <div id="session-list" class="session-list">
+            <div style="color: #64748b; font-size: 0.8rem;">Loading sessions...</div>
+        </div>
+    </div>
+
+    <div class="main-area">
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="slider-toggle" onclick="toggleSidebar()" title="Toggle History Sidebar">☰</button>
+                <strong style="color: var(--accent-blue); font-size: 1.05rem;">Multi-Agent AI Workspace</strong>
+            </div>
+            <div class="topbar-right">
+                <button id="voice-toggle-btn" class="voice-btn" onclick="toggleVoiceMute()" title="Mute or Unmute AI Voice">🔊 Voice On</button>
+                <div id="avatar-pill" class="avatar-mini">
+                    <span id="avatar-icon" style="font-size: 1.2rem;">🤖</span>
+                    <span id="status-badge">Connecting...</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-feed" class="chat-scroll-container"></div>
+
+        <div class="bottom-dock">
+            <div id="action-injection-zone"></div>
+            <div class="control-row">
+                <input type="text" id="goal-input" placeholder="Message your AI Assistant or assign a task...">
+                <button id="submit-btn" class="primary-btn">Send</button>
+                <button id="mic-btn" class="mic-btn" title="Voice Input">🎙️</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const sessionList = document.getElementById('session-list');
+        const avatarPill = document.getElementById('avatar-pill');
+        const avatarIcon = document.getElementById('avatar-icon');
+        const statusBadge = document.getElementById('status-badge');
+        const chatFeed = document.getElementById('chat-feed');
+        const goalInput = document.getElementById('goal-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const micBtn = document.getElementById('mic-btn');
+        const actionZone = document.getElementById('action-injection-zone');
+        const voiceToggleBtn = document.getElementById('voice-toggle-btn');
+
+        let currentSessionId = "session_" + Date.now();
+        let ws = null;
+        let typingEl = null;
+        let isVoiceMuted = false;
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('collapsed');
+        }
+
+        function toggleVoiceMute() {
+            isVoiceMuted = !isVoiceMuted;
+            if (isVoiceMuted) {
+                window.speechSynthesis.cancel();
+                avatarPill.className = "avatar-mini";
+                avatarIcon.innerText = "🤖";
+                statusBadge.innerText = "Connected";
+                voiceToggleBtn.innerText = "🔇 Voice Muted";
+                voiceToggleBtn.style.borderColor = "var(--accent-rose)";
+                voiceToggleBtn.style.color = "var(--accent-rose)";
+            } else {
+                voiceToggleBtn.innerText = "🔊 Voice On";
+                voiceToggleBtn.style.borderColor = "#334155";
+                voiceToggleBtn.style.color = "white";
+            }
+        }
+
+        function showTyping() {
+            removeTyping();
+            typingEl = document.createElement("div");
+            typingEl.className = "typing-dots";
+            typingEl.innerText = "•••";
+            chatFeed.appendChild(typingEl);
+            chatFeed.scrollTop = chatFeed.scrollHeight;
+        }
+
+        function removeTyping() {
+            if (typingEl && typingEl.parentNode) {
+                typingEl.parentNode.removeChild(typingEl);
+            }
+            typingEl = null;
+        }
+
+                function appendChatBubble(sender, text, isUser) {
+            removeTyping();
+            const row = document.createElement("div");
+            row.className = "msg-row " + (isUser ? "user" : "ai");
+
+            const label = document.createElement("div");
+            label.className = "msg-sender";
+            label.innerText = sender + " • " + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+
+            if (!isUser && text.includes("```")) {
+                renderFormattedContent(bubble, text);
+            } else {
+                bubble.innerText = text;
+            }
+
+            row.appendChild(label);
+            row.appendChild(bubble);
+            chatFeed.appendChild(row);
+            chatFeed.scrollTop = chatFeed.scrollHeight;
+        }
+
+        function renderFormattedContent(container, rawText) {
+            const parts = rawText.split(/```([^\n]*)\n([\s\(\S\)]*?)```/g);
+            for (let i = 0; i < parts.length; i += 3) {
+                const plainText = parts[i];
+                if (plainText && plainText.trim()) {
+                    const p = document.createElement("div");
+                    p.innerText = plainText.trim();
+                    container.appendChild(p);
+                }
+                if (i + 2 < parts.length) {
+                    const langLabel = parts[i + 1] || "code";
+                    const codeContent = parts[i + 2];
+
+                    const wrapper = document.createElement("div");
+                    wrapper.className = "code-wrapper";
+
+                    const header = document.createElement("div");
+                    header.className = "code-header";
+
+                    const tag = document.createElement("span");
+                    tag.innerText = langLabel;
+
+                    const copyBtn = document.createElement("button");
+                    copyBtn.className = "copy-code-btn";
+                    copyBtn.innerText = "📋 Copy Code";
+                    copyBtn.onclick = function() {
+                        navigator.clipboard.writeText(codeContent);
+                        copyBtn.innerText = "✅ Copied!";
+                        setTimeout(function() { copyBtn.innerText = "📋 Copy Code"; }, 1800);
+                    };
+
+                    header.appendChild(tag);
+                    header.appendChild(copyBtn);
+
+                    const pre = document.createElement("pre");
+                    pre.className = "code-block";
+                    pre.textContent = codeContent;
+
+                    wrapper.appendChild(header);
+                    wrapper.appendChild(pre);
+                    container.appendChild(wrapper);
+                }
+            }
+        }
+
+        function appendAgentPill(agent, message) {
+            removeTyping();
+            const pill = document.createElement("div");
+            pill.className = "agent-pill";
+            pill.innerText = "⚡ " + agent + ": " + message;
+            chatFeed.appendChild(pill);
+            showTyping();
+        }
+                function connectWebSocket(sessionId) {
+            if (ws) {
+                ws.onclose = null;
+                ws.close();
+            }
+            currentSessionId = sessionId;
+            ws = new WebSocket("ws://127.0.0.1:8000/api/v1/ws/telemetry/" + sessionId);
+
+            ws.onopen = function() {
+                statusBadge.innerText = "Connected";
+                statusBadge.style.color = "var(--accent-green)";
+                loadSessions();
+            };
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+
+                if (data.status === "CONNECTED") {
+                    return;
+                }
+
+                if (data.agent === "Database Persistence") {
+                    loadSessions();
+                    return;
+                }
+
+                if (data.ui_type === "CALL_ACTION_CARD") {
+                    renderCallActionCard(data.agent, data.message, data.actionable_url);
+                    triggerVoiceSynthesis("Alert: " + data.message);
+                } else if (data.status === "SPEAKING") {
+                    appendChatBubble("AI Assistant", data.message, false);
+                    triggerVoiceSynthesis(data.message);
+                } else {
+                    appendAgentPill(data.agent || "Agent", data.message);
+                }
+            };
+
+            ws.onclose = function() {
+                statusBadge.innerText = "Offline";
+                statusBadge.style.color = "var(--accent-rose)";
+            };
+        }
+
+        async function loadSessions() {
+            try {
+                const resp = await fetch("/api/v1/sessions");
+                const data = await resp.json();
+                sessionList.innerHTML = "";
+                if (!data.sessions || data.sessions.length === 0) {
+                    sessionList.innerHTML = '<div style="color: #64748b; font-size: 0.8rem;">No saved chats yet.</div>';
+                    return;
+                }
+                data.sessions.forEach(function(s) {
+                    const div = document.createElement("div");
+                    div.className = "session-item" + (s.session_id === currentSessionId ? " active" : "");
+                    div.innerText = s.title;
+                    div.title = s.title;
+                    div.onclick = function() {
+                        resumeSession(s.session_id);
+                    };
+                    sessionList.appendChild(div);
+                });
+            } catch (e) {
+                sessionList.innerHTML = '<div style="color: var(--accent-rose); font-size: 0.8rem;">Error loading chats.</div>';
+            }
+        }
+
+        async function resumeSession(sessionId) {
+            chatFeed.innerHTML = "";
+            actionZone.innerHTML = "";
+            try {
+                const resp = await fetch("/api/v1/sessions/" + sessionId);
+                const data = await resp.json();
+                data.messages.forEach(function(m) {
+                    appendChatBubble("You", m.goal, true);
+                    if (m.final_summary) {
+                        appendChatBubble("AI Assistant", m.final_summary, false);
+                    }
+                });
+            } catch (e) {
+                appendAgentPill("System", "Could not restore previous messages.");
+            }
+            connectWebSocket(sessionId);
+        }
+
+        function startNewSession() {
+            const newId = "session_" + Date.now();
+            chatFeed.innerHTML = "";
+            actionZone.innerHTML = "";
+            appendChatBubble("AI Assistant", "New session started. How can I help you today?", false);
+            connectWebSocket(newId);
+        }
+
+        submitBtn.onclick = function() {
+            sendGoalPayload(goalInput.value);
+        };
+
+        goalInput.addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                sendGoalPayload(goalInput.value);
+            }
+        });
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            micBtn.onclick = function() {
+                if (micBtn.classList.contains('active')) {
+                    recognition.stop();
+                } else {
+                    micBtn.classList.add('active');
+                    avatarPill.className = "avatar-mini listening";
+                    statusBadge.innerText = "Listening...";
+                    recognition.start();
+                }
+            };
+            recognition.onresult = function(event) {
+                const speechText = event.results.transcript;
+                goalInput.value = speechText;
+                sendGoalPayload(speechText);
+            };
+            recognition.onend = function() {
+                micBtn.classList.remove('active');
+                avatarPill.className = "avatar-mini";
+                statusBadge.innerText = "Connected";
+            };
+        } else {
+            micBtn.style.display = "none";
+        }
+
+        function triggerVoiceSynthesis(text) {
+            if (isVoiceMuted) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.onstart = function() {
+                avatarPill.className = "avatar-mini speaking";
+                avatarIcon.innerText = "😮";
+                statusBadge.innerText = "Speaking";
+            };
+            utterance.onend = function() {
+                avatarPill.className = "avatar-mini";
+                avatarIcon.innerText = "🤖";
+                statusBadge.innerText = "Connected";
+            };
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function sendGoalPayload(goalText) {
+            if (!goalText.trim()) return;
+            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                appendAgentPill("System", "Reconnecting WebSocket...");
+                return;
+            }
+            appendChatBubble("You", goalText, true);
+            showTyping();
+            ws.send(JSON.stringify({ action: "START_TASK", goal: goalText }));
+            goalInput.value = "";
+        }
+
+        function renderCallActionCard(agent, alertMessage, directLink) {
+            actionZone.innerHTML = 
+                '<div class="action-card">' +
+                    '<div><strong style="color: var(--accent-green);">' + agent + ' Escalation</strong><div style="font-size: 0.85rem; color: #cbd5e1;">' + alertMessage + '</div></div>' +
+                    '<a href="' + directLink + '" target="_blank" class="call-action-btn">🟢 Click to Call</a>' +
+                '</div>';
+        }
+
+        appendChatBubble("AI Assistant", "Hi! How can I help you today?", false);
+        connectWebSocket(currentSessionId);
+    </script>
+</body>
+</html>
+
