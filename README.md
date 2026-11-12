@@ -2,6 +2,11 @@
 
 Air-gapped Multi-Agent AI Platform built with **FastAPI**, **LangGraph**, **CrewAI**, **PyTorch RAG**, **Ollama**, and **MCP**. Routes chat to **Llama 3** with **Redis** memory, coding to **Qwen 2.5 Coder** with **AST self-healing**, and executes policy-grounded audits via **MCP tools** on a live WebSocket voice dashboard.
 
+## Workspace Preview
+
+![Multi-Agent AI Workspace Dashboard](assets/dashboard-preview.png)
+
+
 ## System Architecture
 
 ```mermaid
